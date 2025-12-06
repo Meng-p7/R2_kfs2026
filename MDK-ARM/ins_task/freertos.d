@@ -50,4 +50,4 @@ ins_task\freertos.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_gr
 ins_task\freertos.o: ../application/INS_task.h
 ins_task\freertos.o: ../application/struct_typedef.h
 ins_task\freertos.o: ../application/led_flow_task.h
-ins_task\freertos.o: ../application/vofa_send.h
+ins_task\freertos.o: ../User/vofa_send.h

@@ -56,4 +56,4 @@ ins_task\ins_task.o: ../components/devices/ist8310driver.h
 ins_task\ins_task.o: ../components/controller/pid.h
 ins_task\ins_task.o: ../components/algorithm/MahonyAHRS.h
 ins_task\ins_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
-ins_task\ins_task.o: ..\application\vofa_send.h
+ins_task\ins_task.o: ../User/vofa_send.h

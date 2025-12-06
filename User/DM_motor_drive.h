@@ -56,8 +56,9 @@ void disable_DM(CAN_HandleTypeDef *hcan,uint8_t id, uint8_t ctrl_mode);
 void ctrl_motor1(CAN_HandleTypeDef *hcan,uint16_t id, float _pos, float _vel,float _KP, float _KD, float _torq);
 void ctrl_motor2(CAN_HandleTypeDef *hcan,uint16_t id, float _pos, float _vel);
 void ctrl_motor3(CAN_HandleTypeDef *hcan,uint16_t id,  float _vel);
-void damiao_init(void);
+void ctrl_motor4(CAN_HandleTypeDef *hcan, uint16_t id, float pos, float vel, float cur);
 void dm_current_set(CAN_HandleTypeDef *hcan,uint16_t id, float m1_cur_set, float m2_cur_set, float m3_cur_set, float m4_cur_set);
+void damiao_init(void);
 void save_pos_zero(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id);
 
 #endif

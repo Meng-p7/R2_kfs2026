@@ -117,7 +117,6 @@ float process_throttle(float raw_input);
 void filter1_init(CurrentFilter* filter, float alpha);
 float apply_current_filter(CurrentFilter* filter, float current_input);
 float signed_to_float(int x_signed, float input_min, float input_max, float output_min, float output_max);
-void move_test(float vx);
-void climb_test2(RC_ctrl_t *rc_ptr);
+
 #endif
 //end of file

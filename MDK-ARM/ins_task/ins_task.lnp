@@ -19,7 +19,6 @@
 "ins_task\ins_task.o"
 "ins_task\led_flow_task.o"
 "ins_task\test_task.o"
-"ins_task\vofa_send.o"
 "ins_task\user_lib.o"
 "ins_task\mahonyahrs.o"
 "ins_task\pid.o"

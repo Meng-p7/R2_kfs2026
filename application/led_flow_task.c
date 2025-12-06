@@ -77,6 +77,7 @@ void led_RGB_flow_task(void const * argument)
 //    }
   for(;;)
   {
+    CAN1_send_current();
     osDelay(1);
   }
 }

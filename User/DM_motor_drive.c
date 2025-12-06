@@ -133,52 +133,75 @@ void ctrl_motor3(CAN_HandleTypeDef *hcan, uint16_t id,  float _vel)
 	  TX_Data[3] = *(vbuf+3);
 		HAL_CAN_AddTxMessage(hcan, &Tx_Msg, TX_Data, &send_mail_box); 
 }
+void ctrl_motor4(CAN_HandleTypeDef *hcan, uint16_t id, float pos, float vel, float cur)
+{
+	uint8_t TX_Data[8];
+	uint32_t send_mail_box;
+	CAN_TxHeaderTypeDef Tx_Msg;
+
+	uint8_t *pbuf, *vbuf, *ibuf;
+	
+	uint16_t u16_vel = vel*100;
+	uint16_t u16_cur  = cur*10000;
+	
+	Tx_Msg.StdId = 0x300+id;
+    Tx_Msg.IDE = CAN_ID_STD;
+	Tx_Msg.RTR = CAN_RTR_DATA;
+	Tx_Msg.DLC = 0x08;
+
+	pbuf=(uint8_t*)&pos;
+	vbuf=(uint8_t*)&u16_vel;
+	ibuf=(uint8_t*)&u16_cur;
+	
+	TX_Data[0] = *pbuf;
+	TX_Data[1] = *(pbuf+1);
+	TX_Data[2] = *(pbuf+2);
+	TX_Data[3] = *(pbuf+3);
+
+	TX_Data[4] = *vbuf;
+	TX_Data[5] = *(vbuf+1);
+	
+	TX_Data[6] = *ibuf;
+	TX_Data[7] = *(ibuf+1);
+	
+	HAL_CAN_AddTxMessage(hcan, &Tx_Msg, TX_Data, &send_mail_box); 
+}
 void damiao_init()
 {
-	    save_pos_zero(&hcan1, 0x100, 0x001);
-        osDelay(10);
-		save_pos_zero(&hcan1, 0x100, 0x002);
-        osDelay(10);
-		save_pos_zero(&hcan1, 0x100, 0x003);
-        osDelay(10);
-		save_pos_zero(&hcan1, 0x100, 0x004);
-        osDelay(10);
-		enable_DM(&hcan1,0x01,2);
-		osDelay(10);
-	    ctrl_motor2(&hcan1,0x01, -1, 0.2);
-		osDelay(10);
-		enable_DM(&hcan1,0x02,2);
-		osDelay(10);
-	    ctrl_motor2(&hcan1,0x02, 1, 0.2);
-		osDelay(10);
-		enable_DM(&hcan1,0x03,2);
-		osDelay(10);
-	    ctrl_motor2(&hcan1,0x03, -1, 0.2);
-		osDelay(10);
-		enable_DM(&hcan1,0x04,2);
-		osDelay(10);
-	    ctrl_motor2(&hcan1,0x04, 1, 0.2);
-		osDelay(10);
-		enable_DM(&hcan2,0x01,3);
-		osDelay(10);
-		enable_DM(&hcan2,0x02,3);
-		osDelay(10);
-		enable_DM(&hcan2,0x03,3);
-		osDelay(10);
-		enable_DM(&hcan2,0x04,3);
-		
-
-
+	    
+		enable_DM(&hcan2,0x01,4);
+		osDelay(3);
+		enable_DM(&hcan2,0x02,4);
+		osDelay(3);
+		enable_DM(&hcan2,0x03,4);
+		osDelay(3);
+		enable_DM(&hcan2,0x04,4);
+		osDelay(3);
+//         static int j=1;
+//     while(j)
+//     {
+// 	      j=0;
+//           for(int i=0;i<4;i++)
+//    {   if(DM_pitch_motor_data[i].state==0)
+//        {
+//         j=1;
+//         enable_DM(&hcan2,0x01+i,4);
+//         osDelay(3);
+//        }
+//     }
+//     }
+ 
 }
 void enable_DM(CAN_HandleTypeDef *hcan,uint8_t id, uint8_t ctrl_mode)
 {
 		uint8_t TX_Data[8];
-		uint32_t send_mail_box;
+		uint32_ t send_mail_box;
 		CAN_TxHeaderTypeDef Tx_Msg;
 	
 		if(ctrl_mode==1)		Tx_Msg.StdId=0x000+id;	 
 		else if(ctrl_mode==2)	Tx_Msg.StdId=0x100+id;	 
 		else if(ctrl_mode==3)	Tx_Msg.StdId=0x200+id;	 
+		else if(ctrl_mode==4)	Tx_Msg.StdId=0x300+id;	
 		Tx_Msg.IDE=CAN_ID_STD;		  
 		Tx_Msg.RTR=CAN_RTR_DATA;		 
 		Tx_Msg.DLC=8; 
