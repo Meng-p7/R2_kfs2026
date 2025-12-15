@@ -37,34 +37,21 @@ compiling DM_motor_drive.c...
 ..\User\DM_motor_drive.c(300): warning:  #1-D: last line of file ends without a newline
   }
 ..\User\DM_motor_drive.c: 2 warnings, 0 errors
-compiling can.c...
-compiling freertos.c...
-../Src/freertos.c(129): warning:  #188-D: enumerated type mixed with another type
-    
-sThreadDef(test, test_task, osPriorityNormal+1, 0, 128);
-../Src/freertos.c: 1 warning, 0 errors
+compiling led_flow_task.c...
 compiling chassis_move.c...
-..\User\chassis_move.c(95): warning:  #223-D: function "osDelay" declared implicitly
+..\User\chassis_move.c(96): warning:  #223-D: function "osDelay" declared implicitly
       osDelay(1);
-..\User\chassis_move.c(169): warning:  #223-D: function "osDelay" declared implicitly
+..\User\chassis_move.c(170): warning:  #223-D: function "osDelay" declared implicitly
    osDelay(1);
 ..\User\chassis_move.c: 2 warnings, 0 errors
 compiling test_task.c...
-..\application\test_task.c(286): warning:  #1-D: last line of file ends without a newline
+..\application\test_task.c(305): warning:  #1-D: last line of file ends without a newline
   }
-..\application\test_task.c(73): warning:  #177-D: function "state_stay"  was declared but never referenced
-  static void state_stay(void)
-..\application\test_task.c(95): warning:  #177-D: function "state_climb"  was declared but never referenced
-  static void state_climb(void)
-..\application\test_task.c(121): warning:  #177-D: function "state_move"  was declared but never referenced
-  static void state_move(void)
-..\application\test_task.c(29): warning:  #550-D: variable "current_state"  was set but never used
-  static system_state_t current_state = STATE_STAY;
-..\application\test_task.c: 5 warnings, 0 errors
+..\application\test_task.c: 1 warning, 0 errors
 linking...
-Program Size: Code=53088 RO-data=952 RW-data=356 ZI-data=46660  
+Program Size: Code=55816 RO-data=952 RW-data=384 ZI-data=46664  
 FromELF: creating hex file...
-"ins_task\ins_task.axf" - 0 Error(s), 11 Warning(s).
+"ins_task\ins_task.axf" - 0 Error(s), 6 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -86,7 +73,7 @@ Package Vendor: Keil
 <h2>Collection of Component Files used:</h2>
 
    * Component: ARM::CMSIS:CORE:5.0.1
-Build Time Elapsed:  00:00:05
+Build Time Elapsed:  00:00:03
 </pre>
 </body>
 </html>

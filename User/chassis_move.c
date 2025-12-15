@@ -23,6 +23,7 @@ static double wheel_rpm[4];
 float PID_SPEED[3] = {950.0f, 260.0f, 660.0f};
 pid_type_def motor_speed[4];
 int16_t wheel_current[4]={0,0,0,0}; 
+int16_t move[4]={0,0,0,0}; 
 extern  volatile uint8_t remote_power_off ;
 // 预先计算常用组合
 const float L_plus_W = WHEELBASE_HALF + TRACK_WIDTH_HALF;
@@ -34,10 +35,10 @@ CurrentFilter filter1;
 
 void chassis_move_init()
 {  
-    PID_init(&motor_speed[0], PID_POSITION, PID_SPEED, 7000, 500);
-    PID_init(&motor_speed[1], PID_POSITION,PID_SPEED, 7000, 500);
-    PID_init(&motor_speed[2], PID_POSITION, PID_SPEED, 7000, 500);
-    PID_init(&motor_speed[3], PID_POSITION, PID_SPEED, 7000, 500);
+    PID_init(&motor_speed[0], PID_POSITION, PID_SPEED, 7000, 5000);
+    PID_init(&motor_speed[1], PID_POSITION,PID_SPEED, 7000, 5000);
+    PID_init(&motor_speed[2], PID_POSITION, PID_SPEED, 7000, 5000);
+    PID_init(&motor_speed[3], PID_POSITION, PID_SPEED, 7000, 5000);
   damiao_init();	
 filter1_init(&filter1, 0.6f);
 }
@@ -128,7 +129,7 @@ void chassis_moto_body_calc(Chassis_Data_Rx Chassis_Data_Receive)
 
      wheel_current[FL] = apply_current_filter(&filter1,PID_calc(&motor_speed[0], get_DJI_motor_data(CAN_1, chassis_FL).round_speed * 10, -wheel_rpm[FL] / 10));
      wheel_current[FR] = apply_current_filter(&filter1,PID_calc(&motor_speed[1], get_DJI_motor_data(CAN_1, chassis_FR).round_speed * 10,-wheel_rpm[FR] / 10));
-    wheel_current[BR] = apply_current_filter(&filter1,PID_calc(&motor_speed[2], get_DJI_motor_data(CAN_1, chassis_BR).round_speed * 10, -wheel_rpm[BR] / 10));
+    wheel_current[BR] = apply_current_filter(&filter1,PID_calc(&motor_speed[2], get_DJI_motor_data(CAN_1, chassis_BR).round_speed * 10,- wheel_rpm[BR] / 10));
      wheel_current[BL] = apply_current_filter(&filter1,PID_calc(&motor_speed[3], get_DJI_motor_data(CAN_1, chassis_BL).round_speed * 10, -wheel_rpm[BL] / 10));
      
     set_motor_current(wheel_current[FL], CAN_1, 0x201);
@@ -172,6 +173,20 @@ ctrl_motor4(&hcan1, 0x02,  -result, 0.5, 0.3);
 ctrl_motor4(&hcan1, 0x03,  result, 0.5, 0.3);
  osDelay(1);                
 ctrl_motor4(&hcan1, 0x04,  -result, 0.5, 0.3);            
+}
+
+void move_text(int x)
+{
+    move[FL] = apply_current_filter(&filter1,PID_calc(&motor_speed[0], get_DJI_motor_data(CAN_1, chassis_FL).round_speed * 10, -x / 10));
+    move[FR] = apply_current_filter(&filter1,PID_calc(&motor_speed[1], get_DJI_motor_data(CAN_1, chassis_FR).round_speed * 10,-x / 10));
+    move[BR] = apply_current_filter(&filter1,PID_calc(&motor_speed[2], get_DJI_motor_data(CAN_1, chassis_BR).round_speed * 10, x / 10));   
+    move[BL] = apply_current_filter(&filter1,PID_calc(&motor_speed[3], get_DJI_motor_data(CAN_1, chassis_BL).round_speed * 10, x / 10));
+     
+    set_motor_current(move[FL], CAN_1, 0x201);
+    set_motor_current(move[FR], CAN_1, 0x202);
+    set_motor_current(move[BR], CAN_1, 0x203);
+    set_motor_current(move[BL], CAN_1, 0x204);
+           
 }
 void filter1_init(CurrentFilter* filter, float alpha) {
     filter->prev_output = 0.0f;

@@ -167,8 +167,11 @@ void ctrl_motor4(CAN_HandleTypeDef *hcan, uint16_t id, float pos, float vel, flo
 	HAL_CAN_AddTxMessage(hcan, &Tx_Msg, TX_Data, &send_mail_box); 
 }
 void damiao_init()
-{
-	    
+ {
+// 		    save_pos_zero(&hcan2, 0x01,0x300);
+//         osDelay(1000);
+
+	
 		enable_DM(&hcan2,0x01,4);
 		osDelay(3);
 		enable_DM(&hcan2,0x02,4);
@@ -195,7 +198,7 @@ void damiao_init()
 void enable_DM(CAN_HandleTypeDef *hcan,uint8_t id, uint8_t ctrl_mode)
 {
 		uint8_t TX_Data[8];
-		uint32_ t send_mail_box;
+		uint32_t send_mail_box;
 		CAN_TxHeaderTypeDef Tx_Msg;
 	
 		if(ctrl_mode==1)		Tx_Msg.StdId=0x000+id;	 

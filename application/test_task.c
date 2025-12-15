@@ -28,9 +28,10 @@ typedef enum {
  extern RC_ctrl_t RC_data;
 static system_state_t current_state = STATE_STAY;
 static uint32_t state_entry_time = 0;
-int flag=0 ;
-
-
+int flag=0 ; 
+TickType_t xLastWakeTime2 = 0;
+TickType_t xCurrentTime2 = 0;    
+const TickType_t xPeriod1 = pdMS_TO_TICKS(3); 
 
 
 void test_task(void const * argument)
@@ -39,16 +40,17 @@ void test_task(void const * argument)
 
      for(;;)
 { const RC_ctrl_t *rc_ptr = get_remote_control_point();
-    
+        
+rc_deadband_limit(process_throttle(rc_ptr->rc.ch[1]*0.5), Chassis_Data_Receive.vx, CHASSIS_RC_DEADLINE);
+rc_deadband_limit(process_throttle(rc_ptr->rc.ch[2]*0.5), Chassis_Data_Receive.vy, CHASSIS_RC_DEADLINE);
+rc_deadband_limit(process_throttle(-rc_ptr->rc.ch[3]*0.5), Chassis_Data_Receive.vw, CHASSIS_RC_DEADLINE2);
 //           for(int i=0;i<4;i++)
 //    {   if(DM_pitch_motor_data[i].state==0)
-//        {
-       
-//         enable_DM(&hcan2,0x01+i,4);
+//        { enable_DM(&hcan2,0x01+i,4);
 //         osDelay(3);
 //        }
 //     }
-    
+
 
 //  Euler_angles(&body_coordinates,INS_angle);
 //   for(int i = 0;i<4;i++) {
@@ -58,41 +60,46 @@ void test_task(void const * argument)
 //  Stress_cone_anologize(&body_coordinates,
 //                        arm_start_coordinates,
 //                        arm_end_coordinates);
-// switch(current_state) {
-//         case STATE_STAY:
-//             state_stay();
-//             break;
+switch(current_state) {
+        case STATE_STAY:
+            state_stay();
+            break;
             
-//         case STATE_CLIMB:
-//             state_climb();
-//             break;
+        case STATE_CLIMB:
+            state_climb();
+            break;
             
-//         case STATE_MOVE:
-//             state_move();
-//             break;
-//     }
+        case STATE_MOVE:
+            state_move();
+            break;
+    }
 
-  osDelay(3);
-}
+
+ }
 }
 
 
 static void state_stay(void)
 { 
- rc_deadband_limit(process_throttle(rc_ptr->rc.ch[1]), Chassis_Data_Receive.vx, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(rc_ptr->rc.ch[2]), Chassis_Data_Receive.vy, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(-rc_ptr->rc.ch[3]), Chassis_Data_Receive.vw, CHASSIS_RC_DEADLINE2);
-chassis_moto_body_calc(Chassis_Data_Receive);
+ TickType_t xCurrentTime2 = xTaskGetTickCount();
+  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
+        {
+          chassis_moto_body_calc(Chassis_Data_Receive);
+          CAN1_send_current();
+            xLastWakeTime2 = xCurrentTime2;
+         }
 
-            ctrl_motor4(&hcan2, 0x01, 1, 0.5, 0.3);
+
+            ctrl_motor4(&hcan2, 0x01, 4, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -1, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x02, -2, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 1, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x03, 2, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -1, 0.5, 0.3);
-            osDelay(1);     
-    if( motor_step(DM_pitch_motor_data,0,1.0f)==1 &&motor_step2(DM_pitch_motor_data,0,1,1) ) {
+            ctrl_motor4(&hcan2, 0x04, -4, 0.5, 0.3);
+            osDelay(1);  
+              
+    if( motor_step(DM_pitch_motor_data,1,1.0f) && motor_step2(DM_pitch_motor_data,0,2,4)) {
         current_state = STATE_CLIMB;
         state_entry_time = osKernelSysTick();
     }
@@ -102,21 +109,27 @@ chassis_moto_body_calc(Chassis_Data_Receive);
 static void state_climb(void)
 {
     // 先检查超时
-    if(osKernelSysTick() - state_entry_time > 5000) {
-        current_state = STATE_STAY;
-        motor_step_stay = 0;
-        return;
-    }
-    
-            ctrl_motor4(&hcan2, 0x01, 2, 0.5, 0.3);
+    // if(osKernelSysTick() - state_entry_time > 5000) {
+    //     current_state = STATE_STAY;
+    //     motor_step_stay = 0;
+    //     return;
+    // }
+         TickType_t xCurrentTime2 = xTaskGetTickCount();
+  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
+        {
+        move_text(10);
+        CAN1_send_current();
+            xLastWakeTime2 = xCurrentTime2;
+        }
+            ctrl_motor4(&hcan2, 0x01, 6.7, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -2, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x02, -4, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 3, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x03, 4, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -3, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x04, -6.7, 0.5, 0.3);
             osDelay(1);     
-            if(INS_angle_reset(&INS_angle[1])&&motor_step2(DM_pitch_motor_data,0,2,3)) {
+            if(INS_angle_reset(&INS_angle[1])&&motor_step2(DM_pitch_motor_data,0,4,6.7)) {
                 current_state = STATE_MOVE;
                 state_entry_time = osKernelSysTick();
             }
@@ -128,24 +141,29 @@ static void state_climb(void)
 static void state_move(void)
 {
 
-    if(osKernelSysTick() - state_entry_time > 5000) {
-        current_state = STATE_STAY;
-        motor_step_stay = 0;
-        return;
-    }
- rc_deadband_limit(process_throttle(rc_ptr->rc.ch[1]), Chassis_Data_Receive.vx, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(rc_ptr->rc.ch[2]), Chassis_Data_Receive.vy, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(-rc_ptr->rc.ch[3]), Chassis_Data_Receive.vw, CHASSIS_RC_DEADLINE2);
-chassis_moto_body_calc(Chassis_Data_Receive); 
-            ctrl_motor4(&hcan2, 0x01, 2, 0.5, 0.3);
+    // if(osKernelSysTick() - state_entry_time > 5000) {
+    //     current_state = STATE_STAY;
+    //     motor_step_stay = 0;
+    //     return;
+    // }
+     TickType_t xCurrentTime2 = xTaskGetTickCount();
+  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
+        {
+        move_text(100);
+        CAN1_send_current();
+            xLastWakeTime2 = xCurrentTime2;
+        }
+
+         
+            ctrl_motor4(&hcan2, 0x01, 6.7, 0.5, 0.3);
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -2, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x02, -4, 0.5, 0.3);  //前
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 3, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x03, 4, 0.5, 0.3); //前
             osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -3, 0.5, 0.3);
+            ctrl_motor4(&hcan2, 0x04, -6.7, 0.5, 0.3);
             osDelay(1); 
-            if(motor_step(DM_pitch_motor_data,1,1.0f)==2 ) {
+            if(motor_step3(DM_pitch_motor_data,0,3.8f) ) {
                 current_state = STATE_STAY; 
                 state_entry_time = osKernelSysTick();
               
@@ -157,7 +175,7 @@ chassis_moto_body_calc(Chassis_Data_Receive);
 
 int INS_angle_reset(fp32* INS_angle)  
 {
-    if (fabs(INS_angle[1]) < 0.1f)  
+    if (fabs(INS_angle[1]) < 0.2f)  
         return 1;
     else
         return 0;
@@ -165,26 +183,31 @@ int INS_angle_reset(fp32* INS_angle)
 
 int motor_step(DM_motor_data_t *DM_Receive,int i,float set)  
 {
-    if (fabs(DM_Receive[i].toq) > set && 
-        fabs(DM_Receive[i+3].toq) > set)  
+    if (fabs(DM_Receive[i].toq) > set &&
+        fabs(DM_Receive[i+1].toq) > set)  
         return 1;
-    else if(fabs(DM_Receive[i].toq) > set && 
-            fabs(DM_Receive[i+1].toq) > set)  
-        return 2;
+ 
     else return 0;
 }
 int motor_step2(DM_motor_data_t *DM_Receive,int i,float set1,float set2) 
 {
-    if ( (fabs(fabs(DM_Receive[i].pos) - set1) < 0.01f &&
+    if((fabs(DM_Receive[i].pos) - set2&&
     fabs(fabs(DM_Receive[i+1].pos) - set1) < 0.01f &&
-    fabs(fabs(DM_Receive[i+2].pos) - set2) < 0.01f &&
+    fabs(fabs(DM_Receive[i+2].pos) - set1) < 0.01f &&
     fabs(fabs(DM_Receive[i+3].pos) - set2) < 0.01f))  
         return 1;
     else
         return 0;
 }
 
-
+int motor_step3(DM_motor_data_t *DM_Receive,int i,float set)  
+{
+    if (
+        fabs(DM_Receive[i+3].toq) > set)  
+        return 1;
+ 
+    else return 0;
+}
 // 定义向量运算结构体和函数
 typedef struct {
     float x, y, z;
