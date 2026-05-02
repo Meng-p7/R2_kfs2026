@@ -34,6 +34,9 @@ static uint8_t task1_phase = 0;	//用于局部判断task1所处的阶段
 static uint8_t task2_phase = 0;
 static TickType_t entertime = 0;
 static TickType_t phase_entertime = 0;
+static float pickup_height = 75; //取方块时电机3,4下降高度，由遥控器ch[7/8/9]决定
+static uint8_t store_count = 0;  //存放次数，第1次放200，第2次放300
+static float store_pos = 200;    //当前存放位置，供task2取方块时使用
 void test_task(void const * argument)
 {  
 	save_zero();
@@ -58,23 +61,31 @@ void test_task(void const * argument)
         switch(current_state) {
 			case STATE_INIT:
 				state_task0();
-			if (rc_ptr->rc.ch[9] == 1 ){ 
-			current_state = STATE_TASK1;
+			if (rc_ptr->rc.ch[9] != 0 || rc_ptr->rc.ch[8] != 0 || rc_ptr->rc.ch[7] != 0){ 
+				if (rc_ptr->rc.ch[7] != 0) pickup_height = 120;
+				else if (rc_ptr->rc.ch[8] != 0) pickup_height = 100;
+				else pickup_height = 80;
+				task1_phase = 0;
+				current_state = STATE_TASK1;
 			}			
                 break;
 			
             case STATE_TASK1:
                 state_task1();
-			if (rc_ptr->rc.ch[9] == 0){
+			if (rc_ptr->rc.ch[9] == 0 && rc_ptr->rc.ch[8] == 0 && rc_ptr->rc.ch[7] == 0){
+            store_count++;
             current_state = STATE_TASK2;
-          
 			}			
                 break;
                 
             case STATE_TASK2:
                 state_task2();
-			if ( rc_ptr->rc.ch[9] == 1){
-            current_state = STATE_TASK1;
+			if (rc_ptr->rc.ch[9] != 0 || rc_ptr->rc.ch[8] != 0 || rc_ptr->rc.ch[7] != 0){
+				if (rc_ptr->rc.ch[7] != 0) pickup_height = 120;
+				else if (rc_ptr->rc.ch[8] != 0) pickup_height = 100;
+				else pickup_height = 80;
+				task1_phase = 0;
+				current_state = STATE_TASK1;
 			}
                 break;
 					                
@@ -88,9 +99,13 @@ void test_task(void const * argument)
 		
 		 case STATE_TASK4:
                 state_task4();		
-            if (rc_ptr->rc.ch[9] == 1 )	
+            if (rc_ptr->rc.ch[9] != 0 || rc_ptr->rc.ch[8] != 0 || rc_ptr->rc.ch[7] != 0)	
             {  
-            current_state = STATE_TASK1;
+				if (rc_ptr->rc.ch[7] != 0) pickup_height = 120;
+				else if (rc_ptr->rc.ch[8] != 0) pickup_height = 100;
+				else pickup_height = 80;
+				task1_phase = 0;
+				current_state = STATE_TASK1;
             }
                 break;
 				
@@ -124,9 +139,9 @@ static void state_task1(void)//phase0:吸方块;phase1:升高;phase2:存放;phas
 	
 	if ((xCurrentTime2-entertime)>pdMS_TO_TICKS(2000)&&fabsf(vel1) < 0.05f )
 	{  
-	ctrl_motor2(&hcan2, 0x03, 75, 2);  
+	ctrl_motor2(&hcan2, 0x03, pickup_height, 2);  
     osDelay(1); 
-    ctrl_motor2(&hcan2, 0x04, -75, 2);
+    ctrl_motor2(&hcan2, 0x04, -pickup_height, 2);
 	osDelay(1);  	 
 	PUMP_ON();
  
@@ -135,27 +150,29 @@ static void state_task1(void)//phase0:吸方块;phase1:升高;phase2:存放;phas
         }
         }
 	else{
-	ctrl_motor2(&hcan2, 0x03, 115, 2);  
+	ctrl_motor2(&hcan2, 0x03, 130, 2);  
     osDelay(1);     
-    ctrl_motor2(&hcan2, 0x04, -115, 2);
+    ctrl_motor2(&hcan2, 0x04, -130, 2);
     osDelay(1); 
 	}
 }
    
    else if (task1_phase == 1)  {  
        PUMP_ON(); 
-       ctrl_motor2(&hcan2, 0x03, 115, 2);
+       ctrl_motor2(&hcan2, 0x03, 130, 2);
        osDelay(1);
-       ctrl_motor2(&hcan2, 0x04, -115, 2);
+       ctrl_motor2(&hcan2, 0x04, -130, 2);
        osDelay(1);   
     if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel3) < 0.05f) {
         task1_phase = 2;
         }
    } 
     else if (task1_phase == 2 ) {      
-            ctrl_motor2(&hcan2, 0x01, 300, 0.5);
+            if (store_count == 0) store_pos = 200;
+            else store_pos = 300;
+            ctrl_motor2(&hcan2, 0x01, store_pos, 0.5);
             osDelay(1);
-            ctrl_motor2(&hcan2, 0x02, -300, 0.5);
+            ctrl_motor2(&hcan2, 0x02, -store_pos, 0.5);
             osDelay(1);
             ctrl_motor2(&hcan2, 0x05, 4.52, 1);
             osDelay(1);   
@@ -165,6 +182,11 @@ static void state_task1(void)//phase0:吸方块;phase1:升高;phase2:存放;phas
             }                           
      }
     else if (task1_phase == 3) {      
+        ctrl_motor2(&hcan2, 0x01, 500, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -500, 2);
+        osDelay(1);	
+        
         if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
 		ctrl_motor2(&hcan2, 0x03, 0, 2);
         osDelay(1);
@@ -172,16 +194,10 @@ static void state_task1(void)//phase0:吸方块;phase1:升高;phase2:存放;phas
         osDelay(1);
         ctrl_motor2(&hcan2, 0x05, 0, 1);
         osDelay(1);
-		if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(5000) && fabsf(vel3) < 0.05f) {
+		if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(6000) && fabsf(vel3) < 0.05f) {
               task1_phase = 4;
             } 	
-        }	
-		else{
-		ctrl_motor2(&hcan2, 0x01, 500, 2);
-        osDelay(1);
-        ctrl_motor2(&hcan2, 0x02, -500, 2);
-        osDelay(1);	
-			}
+        }				
         }
 	else if (task1_phase == 4) { 
 		ctrl_motor2(&hcan2, 0x01, 0, 2);
