@@ -18,17 +18,6 @@ extern volatile DM_motor_data_t DM_pitch_motor_data[5];
 #define VALVE2_ON()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET)
 #define VALVE2_OFF()   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET)
 
-/*
-REDME!
-//task1用于取方块，task2用于放方块，task3，4用于夹武器
-对于方块任务，会接收到算法的三种信号
-目前写好的task1、2为取较低的方块，而且存方块并没有存到最里面
-后续工作是完善task1,取较高的两个方块以及把存、放的两种情况写完
-对于取方块可以用三个数值的拨杆代表不同高度的方块，只需要修改取方块的高度即可
-对于存方块，可以定义一个i用来记录已经存放的方块数量，i=0时放里面，i=1时放外面
-对于放方块同理，判断应该取外面还是里面
-
-*/
 
 typedef enum {
     STATE_INIT = 0,
