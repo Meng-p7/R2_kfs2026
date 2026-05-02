@@ -1,0 +1,16 @@
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: .\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.c
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: .\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Inc\FreeRTOSConfig.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.o: Drivers/CMSIS/Include/cmsis_armcc.h

@@ -266,7 +266,7 @@ void can_filter_init(void)
   can_filter_st2.FilterIdLow = 0x0000;
   can_filter_st2.FilterMaskIdHigh = 0x0000;
   can_filter_st2.FilterMaskIdLow = 0x0000;
-  can_filter_st2.FilterBank = 0;
+  can_filter_st2.FilterBank = 14;
   can_filter_st2.FilterFIFOAssignment = CAN_RX_FIFO0;
   
   HAL_CAN_ConfigFilter(&hcan1, &can_filter_st2);

@@ -1,0 +1,54 @@
+[2026-03-03 14:34:22]	[info] incremental build: 3 source files changed
+These source files will be recompiled
+---
+'d:\PROJECT\R2_test\Src\can.c': source file has been changed.
+'d:\PROJECT\R2_test\Src\main.c': source file has been changed.
+'d:\PROJECT\R2_test\User\chassis_move.c': source file has been changed.
+
+[2026-03-03 14:34:24]	[done]
+	build successfully !
+
+[2026-03-03 14:44:37]	[info] incremental build: 1 source files changed
+These source files will be recompiled
+---
+'d:\PROJECT\R2_test\application\test_task.c': source file has been changed.
+
+[2026-03-03 14:44:37]	compilation failed at : "d:\PROJECT\R2_test\application\test_task.c", exit code: 1
+command: 
+  "D:\Keil_v5\ARM\ARMCC\bin\armcc.exe" -c --apcs=interwork -IInc -IDrivers/STM32F4xx_HAL_Driver/Inc -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy -IMiddlewares/Third_Party/FreeRTOS/Source/include -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -IMiddlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F -IDrivers/CMSIS/Device/ST/STM32F4xx/Include -IDrivers/CMSIS/Include -Iapplication -Ibsp/boards -Icomponents/algorithm -Icomponents/controller -Icomponents/devices -Icomponents/support -IUser -I.cmsis/include -IMDK-ARM/RTE/_ins_task -D"USE_HAL_DRIVER" -D"STM32F407xx" -D"ARM_MATH_CM4" -D"__FPU_USED=1U" -D"__FPU_PRESENT=1U" -D"__CC_ARM" -D"ARM_MATH_MATRIX_CHECK" -D"ARM_MATH_ROUNDING" --cpu Cortex-M4.fp --li --c99 -O0 --split_sections --diag_suppress=1 --diag_suppress=1295 -g -o .\build\ins_task\.obj\application\test_task.o --no_depend_system_headers --depend .\build\ins_task\.obj\application\test_task.d .\application\test_task.c
+   at unify_builder.Program.Main(String[] args_)
+---
+".\application\test_task.c", line 68: Warning:  #223-D: function "climb_test" declared implicitly
+        climb_test(&RC_data);}
+        ^
+".\application\test_task.c", line 100: Warning:  #223-D: function "climb_test" declared implicitly
+        climb_test(&RC_data);
+        ^
+".\application\test_task.c", line 226: Error:  #18: expected a ")"
+          return 1;
+          ^
+".\application\test_task.c", line 229: Warning:  #12-D: parsing restarts here after previous syntax error
+  }
+  ^
+".\application\test_task.c", line 229: Error:  #127: expected a statement
+  }
+  ^
+".\application\test_task.c", line 229: Warning:  #940-D: missing return statement at end of non-void function "motor_step2" 
+  }
+  ^
+".\application\test_task.c", line 90: Warning:  #177-D: function "state_control"  was declared but never referenced
+  static void state_control(void)
+              ^
+".\application\test_task.c", line 31: Warning:  #550-D: variable "state_entry_time"  was set but never used
+  static uint32_t state_entry_time = 0;
+                  ^
+.\application\test_task.c: 6 warnings, 2 errors
+
+[2026-03-03 14:45:03]	[info] incremental build: 1 source files changed
+These source files will be recompiled
+---
+'d:\PROJECT\R2_test\application\test_task.c': source file has been changed.
+
+[2026-03-03 14:45:03]	[done]
+	build successfully !
+

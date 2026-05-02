@@ -2,315 +2,374 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "DBUS_remote_control.h"
-#include "chassis_move.h"
 #include "DM_motor_drive.h"
 #include "DJI_motor_drive.h"
 
+extern volatile DM_motor_data_t DM_pitch_motor_data[5];
+//气泵 = PF0
+#define PUMP_ON()   HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET)
+#define PUMP_OFF()    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET)
 
+// 电磁阀1 = PF1
+#define VALVE1_ON()  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET)
+#define VALVE1_OFF()   HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET)
 
+// 电磁阀2 = PB12	
+#define VALVE2_ON()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET)
+#define VALVE2_OFF()   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET)
 
-Chassis_Data_Rx Chassis_Data_Receive;
-RC_ctrl_t *rc_ptr;
-DM_motor_data_t DM_Receive[4];
-Coordinates_t body_coordinates,arm_start_coordinates[4],arm_end_coordinates[4],d[4];
-extern DM_motor_data_t DM_pitch_motor_data[4];
-uint8_t motor_step_climb = 0;
-uint8_t motor_step_stay = 0;
-uint8_t motor_step_move = 0;
-extern fp32 INS_angle[3];
-float cos_angle[4];
+/*
+REDME!
+//task1用于取方块，task2用于放方块，task3，4用于夹武器
+对于方块任务，会接收到算法的三种信号
+目前写好的task1、2为取较低的方块，而且存方块并没有存到最里面
+后续工作是完善task1,取较高的两个方块以及把存、放的两种情况写完
+对于取方块可以用三个数值的拨杆代表不同高度的方块，只需要修改取方块的高度即可
+对于存方块，可以定义一个i用来记录已经存放的方块数量，i=0时放里面，i=1时放外面
+对于放方块同理，判断应该取外面还是里面
+
+*/
+
 typedef enum {
-    STATE_STAY = 0,
-    STATE_CLIMB,
-    STATE_MOVE,
+    STATE_INIT = 0,
+    STATE_TASK1,
+    STATE_TASK2,
+	STATE_TASK3, 
+    STATE_TASK4,
+
 } system_state_t ;
-// ȫ�ֱ���
- extern RC_ctrl_t RC_data;
-static system_state_t current_state = STATE_STAY;
-static uint32_t state_entry_time = 0;
-int flag=0 ; 
-TickType_t xLastWakeTime2 = 0;
-TickType_t xCurrentTime2 = 0;    
-const TickType_t xPeriod1 = pdMS_TO_TICKS(3); 
 
-
+static system_state_t prev_state = STATE_INIT;
+static system_state_t current_state = STATE_INIT;	
+static uint8_t task1_phase = 0;	//用于局部判断task1所处的阶段
+static uint8_t task2_phase = 0;
+static TickType_t entertime = 0;
+static TickType_t phase_entertime = 0;
 void test_task(void const * argument)
 {  
- chassis_move_init();
-
-     for(;;)
-{ const RC_ctrl_t *rc_ptr = get_remote_control_point();
+	save_zero();
+//	save_pos_zero(&hcan2, 0x05, 0);  
+//    osDelay(300); 
+	damiao_init();	
+	
+    for(;;)
+    { 	
+		const RC_ctrl_t *rc_ptr = get_remote_control_point();
         
-rc_deadband_limit(process_throttle(rc_ptr->rc.ch[1]*0.5), Chassis_Data_Receive.vx, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(rc_ptr->rc.ch[2]*0.5), Chassis_Data_Receive.vy, CHASSIS_RC_DEADLINE);
-rc_deadband_limit(process_throttle(-rc_ptr->rc.ch[3]*0.5), Chassis_Data_Receive.vw, CHASSIS_RC_DEADLINE2);
-//           for(int i=0;i<4;i++)
-//    {   if(DM_pitch_motor_data[i].state==0)
-//        { enable_DM(&hcan2,0x01+i,4);
-//         osDelay(3);
-//        }
-//     }
-
-
-//  Euler_angles(&body_coordinates,INS_angle);
-//   for(int i = 0;i<4;i++) {
-//   Euler_angles( &arm_start_coordinates[i],INS_angle);
-//   Euler_angles( &arm_end_coordinates[i],INS_angle);
-//   }
-//  Stress_cone_anologize(&body_coordinates,
-//                        arm_start_coordinates,
-//                        arm_end_coordinates);
-switch(current_state) {
-        case STATE_STAY:
-            state_stay();
-            break;
-            
-        case STATE_CLIMB:
-            state_climb();
-            break;
-            
-        case STATE_MOVE:
-            state_move();
-            break;
-    }
-
-
- }
-}
-
-
-static void state_stay(void)
-{ 
- TickType_t xCurrentTime2 = xTaskGetTickCount();
-  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
-        {
-          chassis_moto_body_calc(Chassis_Data_Receive);
-          CAN1_send_current();
-            xLastWakeTime2 = xCurrentTime2;
+		 // 每次进入新的状态都重新记录时间
+		if (current_state != prev_state) {
+            entertime = xTaskGetTickCount();
+            prev_state = current_state;          
          }
-
-
-            ctrl_motor4(&hcan2, 0x01, 4, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -2, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 2, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -4, 0.5, 0.3);
-            osDelay(1);  
-              
-    if( motor_step(DM_pitch_motor_data,1,1.0f) && motor_step2(DM_pitch_motor_data,0,2,4)) {
-        current_state = STATE_CLIMB;
-        state_entry_time = osKernelSysTick();
-    }
-}
-
-// ����״̬ - �����汾
-static void state_climb(void)
-{
-    // �ȼ�鳬ʱ
-    // if(osKernelSysTick() - state_entry_time > 5000) {
-    //     current_state = STATE_STAY;
-    //     motor_step_stay = 0;
-    //     return;
-    // }
-         TickType_t xCurrentTime2 = xTaskGetTickCount();
-  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
-        {
-        move_text(10);
-        CAN1_send_current();
-            xLastWakeTime2 = xCurrentTime2;
-        }
-            ctrl_motor4(&hcan2, 0x01, 6.7, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -4, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 4, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -6.7, 0.5, 0.3);
-            osDelay(1);     
-            if(INS_angle_reset(&INS_angle[1])&&motor_step2(DM_pitch_motor_data,0,4,6.7)) {
-                current_state = STATE_MOVE;
-                state_entry_time = osKernelSysTick();
-            }
-           
-    
-}
-
-// �ƶ�״̬ - �����汾
-static void state_move(void)
-{
-
-    // if(osKernelSysTick() - state_entry_time > 5000) {
-    //     current_state = STATE_STAY;
-    //     motor_step_stay = 0;
-    //     return;
-    // }
-     TickType_t xCurrentTime2 = xTaskGetTickCount();
-  if((xCurrentTime2 - xLastWakeTime2) >= xPeriod1)
-        {
-        move_text(100);
-        CAN1_send_current();
-            xLastWakeTime2 = xCurrentTime2;
-        }
-
-         
-            ctrl_motor4(&hcan2, 0x01, 6.7, 0.5, 0.3);
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x02, -4, 0.5, 0.3);  //ǰ
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x03, 4, 0.5, 0.3); //ǰ
-            osDelay(1);     
-            ctrl_motor4(&hcan2, 0x04, -6.7, 0.5, 0.3);
-            osDelay(1); 
-            if(motor_step3(DM_pitch_motor_data,0,3.8f) ) {
-                current_state = STATE_STAY; 
-                state_entry_time = osKernelSysTick();
-              
-            }
+      
+		 if (rc_ptr->rc.ch[10] != 0) {
+            current_state = STATE_TASK3;
+		  } 
+		 
+        switch(current_state) {
+			case STATE_INIT:
+				state_task0();
+			if (rc_ptr->rc.ch[9] == 1 ){ 
+			current_state = STATE_TASK1;
+			}			
+                break;
+			
+            case STATE_TASK1:
+                state_task1();
+			if (rc_ptr->rc.ch[9] == 0){
+            current_state = STATE_TASK2;
           
-    
-}
-
-
-int INS_angle_reset(fp32* INS_angle)  
-{
-    if (fabs(INS_angle[1]) < 0.2f)  
-        return 1;
-    else
-        return 0;
-}
-
-int motor_step(DM_motor_data_t *DM_Receive,int i,float set)  
-{
-    if (fabs(DM_Receive[i].toq) > set &&
-        fabs(DM_Receive[i+1].toq) > set)  
-        return 1;
- 
-    else return 0;
-}
-int motor_step2(DM_motor_data_t *DM_Receive,int i,float set1,float set2) 
-{
-    if((fabs(DM_Receive[i].pos) - set2&&
-    fabs(fabs(DM_Receive[i+1].pos) - set1) < 0.01f &&
-    fabs(fabs(DM_Receive[i+2].pos) - set1) < 0.01f &&
-    fabs(fabs(DM_Receive[i+3].pos) - set2) < 0.01f))  
-        return 1;
-    else
-        return 0;
-}
-
-int motor_step3(DM_motor_data_t *DM_Receive,int i,float set)  
-{
-    if (
-        fabs(DM_Receive[i+3].toq) > set)  
-        return 1;
- 
-    else return 0;
-}
-// ������������ṹ��ͺ���
-typedef struct {
-    float x, y, z;
-} Vector3D;
-
-// ��������
-static inline Vector3D vector_sub(const Coordinates_t* a, const Coordinates_t* b) {
-    return (Vector3D){a->x - b->x, a->y - b->y, a->z - b->z};
-}
-
-// �������
-static inline float vector_dot(const Vector3D* a, const Vector3D* b) {
-    return a->x * b->x + a->y * b->y + a->z * b->z;
-}
-
-// ����ģ��ƽ��
-static inline float vector_sqr_norm(const Vector3D* v) {
-    return v->x * v->x + v->y * v->y + v->z * v->z;
-}
-
-// ����ģ
-static inline float vector_norm(const Vector3D* v) {
-    return sqrtf(vector_sqr_norm(v));
-}
-
-// ���㴹��ʹ�������
-static void calculate_perpendicular(const Coordinates_t* line_start, 
-                                   const Coordinates_t* line_end,
-                                   const Coordinates_t* point,
-                                   Vector3D* perpendicular_vec,
-                                   float* cos_angle) {
-    Vector3D line_vec = vector_sub(line_end, line_start);
-    Vector3D point_vec = vector_sub(point, line_start);
-    
-    float t = vector_dot(&line_vec, &point_vec);
-    float norm_line_sqr = vector_sqr_norm(&line_vec);
-    
-    // �������
-    if (norm_line_sqr < 1e-6f) {
-        perpendicular_vec->x = perpendicular_vec->y = perpendicular_vec->z = 0.0f;
-        *cos_angle = 0.0f;
-        return;
+			}			
+                break;
+                
+            case STATE_TASK2:
+                state_task2();
+			if ( rc_ptr->rc.ch[9] == 1){
+            current_state = STATE_TASK1;
+			}
+                break;
+					                
+            case STATE_TASK3:
+                state_task3();
+			if (rc_ptr->rc.ch[10] == 0)
+            {
+           current_state = STATE_TASK4;
+            }
+                break;
+		
+		 case STATE_TASK4:
+                state_task4();		
+            if (rc_ptr->rc.ch[9] == 1 )	
+            {  
+            current_state = STATE_TASK1;
+            }
+                break;
+				
+         } 		  
     }
-    
-    float theta = t / norm_line_sqr;
-    
-    // ���㴹������
-    Coordinates_t foot = {
-        .x = line_start->x + line_vec.x * theta,
-        .y = line_start->y + line_vec.y * theta,
-        .z = line_start->z + line_vec.z * theta
-    };
-    
-    // ���㴹������
-    *perpendicular_vec = vector_sub(&foot, point);
-    
-    // ������z��нǵ�����ֵ
-    float norm_perp = vector_norm(perpendicular_vec);
-    *cos_angle = (norm_perp > 1e-6f) ? perpendicular_vec->z / norm_perp : 0.0f;
 }
 
-void Under_force_anologize(Coordinates_t* body_coordinates,
-                          Coordinates_t* arm_start_coordinates,
-                          Coordinates_t* arm_end_coordinates) {
-    for (int i = 0; i < 4; i++) {
-        if (DM_pitch_motor_data[i].pos < 2) {
-            arm_start_coordinates[i].z -= 0.01f;
-            flag = 1;
-        } else {
-            arm_end_coordinates[i].z -= 0.01f;
-            flag = 0;
+
+//前1+，2-
+//升3+，4—
+//往前转5+
+
+static void state_task1(void)//phase0:吸方块;phase1:升高;phase2:存放;phase3:存方块;phase4:完成
+{ 		
+    static uint8_t prev_phase = 0xFF;
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
+    float vel3 = DM_pitch_motor_data[2].vel;
+    if (task1_phase != prev_phase) {
+        phase_entertime = xCurrentTime2;
+        prev_phase = task1_phase;
+    }//每次进入新phase都重新记录时间
+
+    if (task1_phase == 0) {
+    ctrl_motor2(&hcan2, 0x01, 600, 3);  
+    osDelay(1);     
+    ctrl_motor2(&hcan2, 0x02, -600, 3);
+    osDelay(1);          
+    ctrl_motor2(&hcan2, 0x05, 0, 1.5);
+	osDelay(1);
+	
+	if ((xCurrentTime2-entertime)>pdMS_TO_TICKS(2000)&&fabsf(vel1) < 0.05f )
+	{  
+	ctrl_motor2(&hcan2, 0x03, 75, 2);  
+    osDelay(1); 
+    ctrl_motor2(&hcan2, 0x04, -75, 2);
+	osDelay(1);  	 
+	PUMP_ON();
+ 
+	if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(12000) && fabsf(vel3) < 0.05f ) {//确保吸住方块
+        task1_phase = 1;               
+        }
+        }
+	else{
+	ctrl_motor2(&hcan2, 0x03, 115, 2);  
+    osDelay(1);     
+    ctrl_motor2(&hcan2, 0x04, -115, 2);
+    osDelay(1); 
+	}
+}
+   
+   else if (task1_phase == 1)  {  
+       PUMP_ON(); 
+       ctrl_motor2(&hcan2, 0x03, 115, 2);
+       osDelay(1);
+       ctrl_motor2(&hcan2, 0x04, -115, 2);
+       osDelay(1);   
+    if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel3) < 0.05f) {
+        task1_phase = 2;
+        }
+   } 
+    else if (task1_phase == 2 ) {      
+            ctrl_motor2(&hcan2, 0x01, 300, 0.5);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x02, -300, 0.5);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x05, 4.52, 1);
+            osDelay(1);   
+            if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
+                PUMP_OFF();
+                task1_phase = 3;
+            }                           
+     }
+    else if (task1_phase == 3) {      
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
+		ctrl_motor2(&hcan2, 0x03, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x05, 0, 1);
+        osDelay(1);
+		if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(5000) && fabsf(vel3) < 0.05f) {
+              task1_phase = 4;
+            } 	
+        }	
+		else{
+		ctrl_motor2(&hcan2, 0x01, 500, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -500, 2);
+        osDelay(1);	
+			}
+        }
+	else if (task1_phase == 4) { 
+		ctrl_motor2(&hcan2, 0x01, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, 0, 2);
+        osDelay(1);
+	 }
+		
+    }
+
+
+static void state_task2(void) //取方块，拆分动作：机械臂先伸到位置，往里顶吸住，往外伸放方块，归位
+{      
+    static uint8_t prev_phase = 0xFF;
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
+    float vel3 = DM_pitch_motor_data[2].vel;
+
+    if (task2_phase != prev_phase) {
+        phase_entertime = xCurrentTime2;
+        prev_phase = task2_phase;
+    }//每次进入新phase都重新记录时间
+
+        if (task2_phase == 0) {
+        ctrl_motor2(&hcan2, 0x01, 400, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -400, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x03, 115, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, -115, 2);
+        osDelay(1);
+         if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f && fabsf(vel3) < 0.05f){ 
+        task2_phase = 1;
+         }
+    }
+     else if (task2_phase == 1) {      
+        ctrl_motor2(&hcan2, 0x01, 290, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -290, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x05, -1.56, 2);
+        osDelay(1);
+        PUMP_ON();
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(6000) &&fabsf(vel1) < 0.05f )
+        {
+            task2_phase = 2;
+        }   
+    }
+    else if (task2_phase == 2) {           
+        		
+		ctrl_motor2(&hcan2, 0x01, 600, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -600, 3);
+        osDelay(1);
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f){           
+          ctrl_motor2(&hcan2, 0x05, -4.5, 1);
+          osDelay(1);   				
+		  task2_phase = 3;
+             }
+    }
+
+     else if (task2_phase == 3) {
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(8000)) {
+        PUMP_OFF();
+		ctrl_motor2(&hcan2, 0x01, 0, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, 0, 3);
+        osDelay(1);
+		ctrl_motor2(&hcan2, 0x03, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, 0, 2);
+        osDelay(1);
+		ctrl_motor2(&hcan2, 0x05, 0, 2);
+        osDelay(1);
+        
         }
     }
+
+    
 }
 
-void Stress_cone_anologize(Coordinates_t* body_coordinates,
-                          Coordinates_t* arm_start_coordinates,
-                          Coordinates_t* arm_end_coordinates) {
-    const Coordinates_t* arm_coords = (flag == 1) ? arm_start_coordinates : arm_end_coordinates;
-    
-    for (int i = 0; i < 4; i++) {
-        Vector3D perpendicular_vec;
-        
-        
-        calculate_perpendicular(&arm_coords[i], &arm_coords[i + 1], 
-                              &body_coordinates[i], &perpendicular_vec, &cos_angle[i]);
-        
-        // �洢���������ԭ�����߼���������Ҫ���浽ȫ�ֱ�����
-        d[i].x = perpendicular_vec.x;
-        d[i].y = perpendicular_vec.y;
-        d[i].z = perpendicular_vec.z;
-        
-    }
+
+/*气缸逻辑：
+VALVE1_ON()+VALVE2_OFF() =气缸闭合
+VALVE1_OFF()+VALVE2_ON() =气缸张开
+
+*/
+static void state_task3(void) 
+{        
+    VALVE1_OFF(); 		 
+    osDelay(10);
+	VALVE2_ON();//张开	
+	
+	ctrl_motor2(&hcan2, 0x03, 125, 2);
+    osDelay(1);     
+    ctrl_motor2(&hcan2, 0x04, -125, 2);
+    osDelay(1); 
+	ctrl_motor2(&hcan2, 0x05, -1.56, 1);
+    osDelay(1);
+	
 }
-void Euler_angles(Coordinates_t* a,fp32 *INS_angle) {
-    
-    // �������Ǻ���ֵ����ǰ�������Ч�ʣ�
-    float cr = cos(INS_angle[2]); float sr = sin(INS_angle[2]);
-    float cp = cos(INS_angle[1]); float sp = sin(INS_angle[1]);
-    float cy = cos(INS_angle[0]); float sy = sin(INS_angle[0]);
-    
-    // �����ת����
-    a->x = a->x * (cy*cp) + a->y * (cy*sp*sr - sy*cr) + a->z * (cy*sp*cr + sy*sr);
-    a->y = a->x * (sy*cp) + a->y * (sy*sp*sr + cy*cr) + a->z * (sy*sp*cr - cy*sr);
-    a->z = a->x * (-sp)   + a->y * (cp*sr)            + a->z * (cp*cr);
+
+static void state_task4(void) //气缸闭合
+{        
+    VALVE2_OFF();
+	osDelay(10);
+	VALVE1_ON(); 		    
+	
+	TickType_t xCurrentTime2 = xTaskGetTickCount();
+    if((xCurrentTime2-entertime)>pdMS_TO_TICKS(3000))
+	{
+	ctrl_motor2(&hcan2, 0x03, 220, 2);
+    osDelay(1);     
+    ctrl_motor2(&hcan2, 0x04, -220, 2);
+    osDelay(1); 		
+	}
+	
 }
+
+static void state_task0(void) //初始化：将所有电机设置为0位置
+{
+		ctrl_motor2(&hcan2, 0x01, 0, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, 0, 1);
+        osDelay(1);
+		ctrl_motor2(&hcan2, 0x05, 0, 1);
+        osDelay(1);
+		static float last_toq3 = 0.0f; 
+	    static float last_toq4 = 0.0f;
+		static uint8_t stop = 0;        // 停止标志（1个，最少）
+	
+        float toq3 = DM_pitch_motor_data[2].toq;
+		float toq4 = DM_pitch_motor_data[3].toq;
+        float diff3 = fabs(toq3 - last_toq3);
+		float diff4 = fabs(toq4 - last_toq4);
+        if(stop == 0)
+        {
+            ctrl_motor2(&hcan2, 0x03, -80, 1);
+            ctrl_motor2(&hcan2, 0x04, 80, 1);
+            osDelay(1);
+            if(last_toq3 == 0 && last_toq4 == 0.0f)
+            {
+                last_toq3 = toq3;
+				 last_toq4 = toq4;
+               
+            }
+            else if(diff3 > 10.0f ||diff4 > 12.0f)
+            {
+                save_pos_zero(&hcan2, 0x03, 0x100);
+                osDelay(10);
+                save_pos_zero(&hcan2, 0x04, 0x100); 
+                osDelay(10);
+                ctrl_motor2(&hcan2, 0x03, 0, 1);
+                ctrl_motor2(&hcan2, 0x04, 0, 1);
+                stop = 1; // 锁死停止
+            }
+        }
+        else
+        {
+            ctrl_motor2(&hcan2, 0x03, 0, 1);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, 0, 1);
+            osDelay(1);
+        }
+	
+}
+
+static void save_zero(void)
+{  		
+	save_pos_zero(&hcan2, 0x01, 0x100);  
+    osDelay(100);     
+    save_pos_zero(&hcan2, 0x02, 0x100);  
+    osDelay(100);  
+	save_pos_zero(&hcan2, 0x03, 0x100);  
+    osDelay(100);  
+	save_pos_zero(&hcan2, 0x04, 0x100);  
+    osDelay(100); 	
+}
+

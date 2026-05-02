@@ -16,7 +16,7 @@
 
 
 
-extern DM_motor_data_t DM_pitch_motor_data[4];	
+extern DM_motor_data_t DM_pitch_motor_data[5];	
 
 extern motor_measure_t Can1_motor_data[8];
 extern motor_measure_t Can2_motor_data[8];
@@ -123,6 +123,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			case 0x04:
 			{
 				get_DM_motor_measure(DM_motor_data+3,rx_data) ;
+				break;
+			}
+			case 0x05:
+			{
+				get_DM_motor_measure(DM_motor_data+4,rx_data) ;
 				break;
 			}
 		}

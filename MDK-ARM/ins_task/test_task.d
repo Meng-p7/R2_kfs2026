@@ -1,7 +1,5 @@
 ins_task\test_task.o: ..\application\test_task.c
 ins_task\test_task.o: ..\application\test_task.h
-ins_task\test_task.o: ..\application\struct_typedef.h
-ins_task\test_task.o: ../User/DM_motor_drive.h
 ins_task\test_task.o: ../Inc/main.h
 ins_task\test_task.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h
 ins_task\test_task.o: ../Inc/stm32f4xx_hal_conf.h
@@ -36,8 +34,6 @@ ins_task\test_task.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h
 ins_task\test_task.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h
 ins_task\test_task.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 ins_task\test_task.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
-ins_task\test_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
-ins_task\test_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 ins_task\test_task.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
 ins_task\test_task.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
 ins_task\test_task.o: ../Inc/FreeRTOSConfig.h
@@ -53,8 +49,11 @@ ins_task\test_task.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
 ins_task\test_task.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
 ins_task\test_task.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
 ins_task\test_task.o: ../User/DBUS_remote_control.h
+ins_task\test_task.o: ../application/struct_typedef.h
 ins_task\test_task.o: ../components/algorithm/user_lib.h
 ins_task\test_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
-ins_task\test_task.o: ../User/chassis_move.h
+ins_task\test_task.o: ../User/DM_motor_drive.h
+ins_task\test_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+ins_task\test_task.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 ins_task\test_task.o: ../User/DJI_motor_drive.h
 ins_task\test_task.o: ../Inc/CAN.h

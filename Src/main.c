@@ -51,7 +51,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t rxda=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,12 +107,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
     delay_init();
 	remote_control_init();
-
+ can_filter_init();
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
- can_filter_init();
+
   /* Start scheduler */
   osKernelStart();
 

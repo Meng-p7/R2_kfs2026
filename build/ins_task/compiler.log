@@ -1,0 +1,19 @@
+>>> cc
+
+".\application\test_task.c", line 68: Warning:  #223-D: function "climb_test" declared implicitly
+        climb_test(&RC_data);}
+        ^
+".\application\test_task.c", line 100: Warning:  #223-D: function "climb_test" declared implicitly
+        climb_test(&RC_data);
+        ^
+".\application\test_task.c", line 90: Warning:  #177-D: function "state_control"  was declared but never referenced
+  static void state_control(void)
+              ^
+".\application\test_task.c", line 31: Warning:  #550-D: variable "state_entry_time"  was set but never used
+  static uint32_t state_entry_time = 0;
+                  ^
+.\application\test_task.c: 4 warnings, 0 errors
+
+>>> ld
+
+Program Size: Code=60034 RO-data=954 RW-data=416 ZI-data=46664  

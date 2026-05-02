@@ -1,0 +1,6 @@
+tool: AC5
+fileName: 'ins_task.map'
+elfName: 'ins_task.axf'
+compilerName: 'ARM Compiler'
+compilerFullName: 'Component: ARM Compiler 5.06 update 5 (build 528)'
+compilerPath: 'D:\Keil_v5\ARM\ARMCC\bin\armcc.exe'

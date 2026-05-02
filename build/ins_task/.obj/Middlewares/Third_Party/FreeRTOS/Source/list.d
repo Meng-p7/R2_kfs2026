@@ -1,0 +1,9 @@
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: .\Middlewares\Third_Party\FreeRTOS\Source\list.c
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Inc\FreeRTOSConfig.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+.\build\ins_task\.obj\Middlewares\Third_Party\FreeRTOS\Source\list.o: Middlewares/Third_Party/FreeRTOS/Source/include/list.h

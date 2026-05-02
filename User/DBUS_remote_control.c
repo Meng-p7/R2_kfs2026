@@ -15,6 +15,8 @@ extern UART_HandleTypeDef huart3;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 volatile uint8_t damiao_task_suspended = 0;
  RC_ctrl_t RC_data;
+ 
+ uint8_t test[2];
 
 void RC_init(uint8_t *rx1_buf, uint8_t *rx2_buf, uint16_t dma_buf_num)
 {
@@ -89,7 +91,7 @@ void Dbus_USARTx_IRQHandler()
             
             if (this_time_rx_len == 25)
             {
-                sbus_to_rc(sbus_rx_buf[0], &RC_data);
+                sbus_to_rc(sbus_rx_buf[0], &RC_data);	
             }
         }
         else
@@ -137,7 +139,9 @@ rc_ctrl->rc.ch[15] =((int16_t)buf[21] >> 5 | ((int16_t)buf[22] << 3 )) & 0x07FF;
     uint8_t status = buf[23];
     rc_signal_lost  = (status & (1 << 2)) ? 1 : 0;
     remote_power_off = rc_signal_lost;
-
+	//²âÊÔ
+	test[0]=buf[12];
+	test[1]=buf[13];
 }
 
 void calibrate_rc_channels_batch(RC_ctrl_t *rc_ctrl, const uint8_t channels[], const int16_t offsets[], const bool inverts[], uint8_t count)

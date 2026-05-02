@@ -20,7 +20,7 @@
 #define V_MAX 30.0f
 
 
-DM_motor_data_t DM_pitch_motor_data[4];
+DM_motor_data_t DM_pitch_motor_data[5];
 
 DM_motor_data_t get_DM_data(int motorID)
 {
@@ -167,33 +167,18 @@ void ctrl_motor4(CAN_HandleTypeDef *hcan, uint16_t id, float pos, float vel, flo
 	HAL_CAN_AddTxMessage(hcan, &Tx_Msg, TX_Data, &send_mail_box); 
 }
 void damiao_init()
- {
-// 		    save_pos_zero(&hcan2, 0x01,0x300);
-//         osDelay(1000);
+ {	
+		enable_DM(&hcan2,0x01,2);
+		osDelay(10);
+		enable_DM(&hcan2,0x02,2);
+		osDelay(10);
+		enable_DM(&hcan2,0x03,2);
+		osDelay(10);
+		enable_DM(&hcan2,0x04,2);
+		osDelay(10);
+	    enable_DM(&hcan2,0x05,2);
+		osDelay(10);
 
-	
-		enable_DM(&hcan2,0x01,4);
-		osDelay(3);
-		enable_DM(&hcan2,0x02,4);
-		osDelay(3);
-		enable_DM(&hcan2,0x03,4);
-		osDelay(3);
-		enable_DM(&hcan2,0x04,4);
-		osDelay(3);
-//         static int j=1;
-//     while(j)
-//     {
-// 	      j=0;
-//           for(int i=0;i<4;i++)
-//    {   if(DM_pitch_motor_data[i].state==0)
-//        {
-//         j=1;
-//         enable_DM(&hcan2,0x01+i,4);
-//         osDelay(3);
-//        }
-//     }
-//     }
- 
 }
 void enable_DM(CAN_HandleTypeDef *hcan,uint8_t id, uint8_t ctrl_mode)
 {
@@ -283,7 +268,7 @@ HAL_CAN_AddTxMessage(hcan, &Tx_Msg, data, &send_mail_box);
 void save_pos_zero(CAN_HandleTypeDef *hcan, uint16_t motor_id, uint16_t mode_id)
 {
 	uint8_t data[8];
-	uint16_t id = motor_id + mode_id;
+	uint16_t id = motor_id ;
 	uint32_t send_mail_box;
 	CAN_TxHeaderTypeDef Tx_Msg;
 	Tx_Msg.StdId = id;

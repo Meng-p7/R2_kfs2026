@@ -42,7 +42,7 @@ extern CAN_HandleTypeDef hcan2;
 
 void MX_CAN1_Init(void);
 void MX_CAN2_Init(void);
-void can_filter_init(void);
+
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */
