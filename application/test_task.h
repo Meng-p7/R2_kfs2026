@@ -7,6 +7,8 @@ static void state_task1(void);
 static void state_task2(void);
 static void state_task3(void);
 static void state_task4(void);
+static void state_task_sleep(void);
+
 static void state_task0(void);
 
 #endif
