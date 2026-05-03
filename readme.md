@@ -43,8 +43,10 @@ INIT ──(ch9)──> TASK1(取方块) <──(ch9)──> TASK2(放方块)
 
 ```
 application/
-├── test_task.c    # 任务调度与控制逻辑
-├── test_task.h    # 函数声明
+├── arm_task.c     # 机械臂动作函数（task0~task4, sleep, save_zero）+ 共享变量定义
+├── arm_task.h     # 宏定义、状态枚举、extern变量声明、函数声明
+├── test_task.c    # 状态机主循环：遥控器信号 → 状态调度
+├── test_task.h    # test_task 函数声明
 └── readme.md
 ```
 
@@ -58,6 +60,10 @@ if ((currentTime - phaseEntertime) > pdMS_TO_TICKS(2000) && fabsf(vel) < 0.05f) 
 ```
 
 ## 更新日志
+
+### 2026-05-03（代码重构）
+- **文件拆分：** 将 test_task.c 中的动作函数、共享变量、宏定义、枚举拆分到 arm_task.c/h 模块，test_task.c 仅保留状态机主循环
+- **模块职责：** arm_task.c/h 负责机械臂动作逻辑，test_task.c 负责遥控器信号解析与状态调度，实现调度与执行分离
 
 ### 2026-05-03
 - **状态机重构：** 合并原 task1 + task2 为统一的 phase 架构，单个任务内实现多阶段自动切换

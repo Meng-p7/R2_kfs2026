@@ -1,0 +1,319 @@
+#include "arm_task.h"
+
+extern volatile DM_motor_data_t DM_pitch_motor_data[5];
+
+//共享变量定义
+system_state_t current_state = STATE_INIT;
+system_state_t prev_state = STATE_INIT;
+uint8_t task1_phase = 0;
+uint8_t task2_phase = 0;
+TickType_t entertime = 0;
+TickType_t phase_entertime = 0;
+float pickup_height = 75;
+uint8_t store_count = 0;
+float store_pos = 300;
+
+//保存零位
+void save_zero(void)
+{
+    save_pos_zero(&hcan2, 0x01, 0x100);
+    osDelay(100);
+    save_pos_zero(&hcan2, 0x02, 0x100);
+    osDelay(100);
+    save_pos_zero(&hcan2, 0x03, 0x100);
+    osDelay(100);
+    save_pos_zero(&hcan2, 0x04, 0x100);
+    osDelay(100);
+}
+
+//初始化：将所有电机设置为0位置
+void state_task0(void)
+{
+    ctrl_motor2(&hcan2, 0x01, 0, 1);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x02, 0, 1);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x05, 0, 1);
+    osDelay(1);
+    static float last_toq3 = 0.0f;
+    static float last_toq4 = 0.0f;
+    static uint8_t stop = 0;
+
+    float toq3 = DM_pitch_motor_data[2].toq;
+    float toq4 = DM_pitch_motor_data[3].toq;
+    float diff3 = fabs(toq3 - last_toq3);
+    float diff4 = fabs(toq4 - last_toq4);
+    if(stop == 0)
+    {
+        ctrl_motor2(&hcan2, 0x03, -80, 1);
+        ctrl_motor2(&hcan2, 0x04, 80, 1);
+        osDelay(1);
+        if(last_toq3 == 0 && last_toq4 == 0.0f)
+        {
+            last_toq3 = toq3;
+            last_toq4 = toq4;
+        }
+        else if(diff3 > 10.0f || diff4 > 12.0f)
+        {
+            save_pos_zero(&hcan2, 0x03, 0x100);
+            osDelay(10);
+            save_pos_zero(&hcan2, 0x04, 0x100);
+            osDelay(10);
+            ctrl_motor2(&hcan2, 0x03, 0, 1);
+            ctrl_motor2(&hcan2, 0x04, 0, 1);
+            stop = 1;
+        }
+    }
+    else
+    {
+        ctrl_motor2(&hcan2, 0x03, 0, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, 0, 1);
+        osDelay(1);
+    }
+}
+
+//取方块：phase0:吸方块; phase1:升高; phase2:存放; phase3:归位; phase4:等待
+void state_task1(void)
+{
+    static uint8_t prev_phase = 0xFF;
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
+    float vel3 = DM_pitch_motor_data[2].vel;
+    if (task1_phase != prev_phase) {
+        phase_entertime = xCurrentTime2;
+        prev_phase = task1_phase;
+    }
+
+    if (task1_phase == 0) {
+        ctrl_motor2(&hcan2, 0x01, 600, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -600, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x05, 0, 1.5);
+        osDelay(1);
+
+        if ((xCurrentTime2 - entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f)
+        {
+            ctrl_motor2(&hcan2, 0x03, pickup_height, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, -pickup_height, 2);
+            osDelay(1);
+            PUMP_ON();
+
+            if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(12000) && fabsf(vel3) < 0.05f) {
+                task1_phase = 1;
+            }
+        }
+        else {
+            ctrl_motor2(&hcan2, 0x03, 130, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, -130, 2);
+            osDelay(1);
+        }
+    }
+    else if (task1_phase == 1) {
+        PUMP_ON();
+        ctrl_motor2(&hcan2, 0x03, 130, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, -130, 2);
+        osDelay(1);
+
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel3) < 0.05f) {
+            store_count++;
+            if (store_count < 3) {
+                task1_phase = 2;
+            }
+        }
+    }
+    else if (task1_phase == 2) {
+        if (store_count == 1) store_pos = 300;
+        else store_pos = 400;
+        ctrl_motor2(&hcan2, 0x01, store_pos, 0.5);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -store_pos, 0.5);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x05, 4.52, 1);
+        osDelay(1);
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
+            PUMP_OFF();
+            task1_phase = 3;
+        }
+    }
+    else if (task1_phase == 3) {
+        ctrl_motor2(&hcan2, 0x01, 500, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -500, 2);
+        osDelay(1);
+
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
+            ctrl_motor2(&hcan2, 0x03, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x05, 0, 1);
+            osDelay(1);
+            if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(6000) && fabsf(vel3) < 0.05f) {
+                task1_phase = 4;
+            }
+        }
+    }
+    else if (task1_phase == 4) {
+        ctrl_motor2(&hcan2, 0x01, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, 0, 2);
+        osDelay(1);
+    }
+}
+
+//放方块：store_count=1去300取，=2去400取，=3手臂直接放
+void state_task2(void)
+{
+    static uint8_t prev_phase = 0xFF;
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
+    float vel3 = DM_pitch_motor_data[2].vel;
+
+    if (task2_phase != prev_phase) {
+        phase_entertime = xCurrentTime2;
+        prev_phase = task2_phase;
+    }
+
+    if (task2_phase == 0) {
+        ctrl_motor2(&hcan2, 0x01, 400, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -400, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x03, 115, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, -115, 2);
+        osDelay(1);
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f && fabsf(vel3) < 0.05f) {
+            task2_phase = 1;
+        }
+    }
+    else if (task2_phase == 1) {
+        float grab_pos = (store_count == 2) ? 390.0f : 290.0f;
+        ctrl_motor2(&hcan2, 0x01, grab_pos, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -grab_pos, 1);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x05, -1.56, 2);
+        osDelay(1);
+        PUMP_ON();
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(6000) && fabsf(vel1) < 0.05f) {
+            task2_phase = 2;
+        }
+    }
+    else if (task2_phase == 2) {
+        ctrl_motor2(&hcan2, 0x01, 600, 3);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, -600, 3);
+        osDelay(1);
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f) {
+            ctrl_motor2(&hcan2, 0x03, pickup_height, 3);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, -pickup_height, 3);
+            osDelay(1);
+            float spin_pos = (store_count == 3) ? 1.6f : -4.5f;
+            ctrl_motor2(&hcan2, 0x05, spin_pos, 1);
+            osDelay(1);
+            task2_phase = 3;
+        }
+    }
+    else if (task2_phase == 3) {
+        if ((xCurrentTime2 - phase_entertime) > pdMS_TO_TICKS(8000)) {
+            PUMP_OFF();
+            ctrl_motor2(&hcan2, 0x01, 0, 3);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x02, 0, 3);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x03, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x04, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x05, 0, 2);
+            osDelay(1);
+            task2_phase = 4;
+        }
+    }
+    else if (task2_phase == 4) {
+        ctrl_motor2(&hcan2, 0x01, 0, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x02, 0, 2);
+        osDelay(1);
+    }
+}
+
+//气缸逻辑：VALVE1_ON()+VALVE2_OFF()=气缸闭合  VALVE1_OFF()+VALVE2_ON()=气缸张开
+
+//武器张开
+void state_task3(void)
+{
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
+    VALVE1_OFF();
+    osDelay(10);
+    VALVE2_ON();
+    ctrl_motor2(&hcan2, 0x01, 400, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x02, -400, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x03, 125, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x04, -125, 2);
+    osDelay(1);
+    if ((xCurrentTime2 - entertime) > pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f)
+    {
+        ctrl_motor2(&hcan2, 0x05, -1.56, 1);
+        osDelay(1);
+    }
+}
+
+//武器闭合
+void state_task4(void)
+{
+    VALVE2_OFF();
+    osDelay(10);
+    VALVE1_ON();
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel3 = DM_pitch_motor_data[2].vel;
+
+    if ((xCurrentTime2 - entertime) > pdMS_TO_TICKS(3000))
+    {
+        ctrl_motor2(&hcan2, 0x03, 220, 2);
+        osDelay(1);
+        ctrl_motor2(&hcan2, 0x04, -220, 2);
+        osDelay(1);
+        if ((xCurrentTime2 - entertime) > pdMS_TO_TICKS(4000) && fabsf(vel3) < 0.05f)
+        {
+            ctrl_motor2(&hcan2, 0x01, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x02, 0, 2);
+            osDelay(1);
+            ctrl_motor2(&hcan2, 0x05, 0.0f, 1);
+            osDelay(1);
+        }
+    }
+}
+
+//休眠：所有电机归位，根据方块数量控制气泵
+void state_task_sleep(void)
+{
+    ctrl_motor2(&hcan2, 0x01, 0, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x02, 0, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x03, 0, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x04, 0, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x05, 0, 1);
+    osDelay(1);
+    if (store_count == 3) {
+        PUMP_ON();
+    }
+    else {
+        PUMP_OFF();
+    }
+}
