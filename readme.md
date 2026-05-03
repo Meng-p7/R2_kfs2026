@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **MCU:** STM32F407
-- **RTOS:** FreeRTOS (CMSIS-RTOS)
+- **RTOS:** FreeRTOS 
 - **电机驱动:** 达妙电机 (DM Motor) + 大疆电机 (DJI Motor)，通过 CAN 总线通信
 - **遥控:** DBUS 协议（大疆遥控器）
 - **执行器:** 气泵吸取、电磁阀气缸夹持

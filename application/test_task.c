@@ -72,13 +72,13 @@ void test_task(void const * argument)
 			
             case STATE_TASK1:
                 state_task1();
-			// task1执行完毕（phase4），用户拨回所有通道 → 回INIT
+			// task1执行完毕（phase4），用户拨回通道 → 进入睡眠状态
 			if (task1_phase == 4) {
 				if (rc_ptr->rc.ch[9] == 0 && rc_ptr->rc.ch[8] == 0 && rc_ptr->rc.ch[7] == 0) {
 					current_state = STATE_SLEEP;
 				}
 			}
-			// 车满停在phase1（store_count>=3），用户拨回所有通道 → 关气泵回INIT
+			// 车满停在phase1（store_count>=3），用户拨回通道 → 进入睡眠状态
 			else if (task1_phase == 1 && store_count >= 3) {
 				if (rc_ptr->rc.ch[9] == 0 && rc_ptr->rc.ch[8] == 0 && rc_ptr->rc.ch[7] == 0) {
 					current_state = STATE_SLEEP;
@@ -108,9 +108,9 @@ void test_task(void const * argument)
                 state_task4();		
             if (rc_ptr->rc.ch[9] != 0 || rc_ptr->rc.ch[8] != 0 || rc_ptr->rc.ch[7] != 0)	
             {  
-				if (rc_ptr->rc.ch[7] != 0) pickup_height = 120;
-				else if (rc_ptr->rc.ch[8] != 0) pickup_height = 100;
-				else pickup_height = 80;
+				if (rc_ptr->rc.ch[7] != 0) pickup_height = 115;
+				else if (rc_ptr->rc.ch[8] != 0) pickup_height = 95;
+				else pickup_height = 75;
 				task1_phase = 0;
 				current_state = STATE_TASK1;
             }
@@ -318,17 +318,24 @@ VALVE1_OFF()+VALVE2_ON() =气缸张开
 */
 static void state_task3(void) 
 {        
+    TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel1 = DM_pitch_motor_data[0].vel;
     VALVE1_OFF(); 		 
     osDelay(10);
 	VALVE2_ON();//张开	
-	
+	ctrl_motor2(&hcan2, 0x01, 400, 2);
+    osDelay(1);
+    ctrl_motor2(&hcan2, 0x02, -400, 2);
+    osDelay(1);
 	ctrl_motor2(&hcan2, 0x03, 125, 2);
     osDelay(1);     
     ctrl_motor2(&hcan2, 0x04, -125, 2);
     osDelay(1); 
+    if((xCurrentTime2-entertime)>pdMS_TO_TICKS(2000) && fabsf(vel1) < 0.05f)
+	{
 	ctrl_motor2(&hcan2, 0x05, -1.56, 1);
     osDelay(1);
-	
+    }
 }
 
 static void state_task4(void) //气缸闭合
@@ -336,14 +343,24 @@ static void state_task4(void) //气缸闭合
     VALVE2_OFF();
 	osDelay(10);
 	VALVE1_ON(); 		    
-	
 	TickType_t xCurrentTime2 = xTaskGetTickCount();
+    float vel3 = DM_pitch_motor_data[2].vel;
+
     if((xCurrentTime2-entertime)>pdMS_TO_TICKS(3000))
 	{
 	ctrl_motor2(&hcan2, 0x03, 220, 2);
     osDelay(1);     
     ctrl_motor2(&hcan2, 0x04, -220, 2);
-    osDelay(1); 		
+    osDelay(1);   
+    if((xCurrentTime2-entertime)>pdMS_TO_TICKS(4000) && fabsf(vel3) < 0.05f)
+	{
+    ctrl_motor2(&hcan2, 0x01, 0, 2);
+    osDelay(1);     
+    ctrl_motor2(&hcan2, 0x02, 0, 2);
+    osDelay(1); 
+	ctrl_motor2(&hcan2, 0x05, 0.0f, 1);
+    osDelay(1);
+    }
 	}
 	
 }
